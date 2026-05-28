@@ -46,6 +46,13 @@ public class BiographyService {
         """;
 
     public BiographyChatResponse chat(Long userId, Long sessionId, String message) {
+        if (sessionId != null) {
+            ChatSession existing = sessionMapper.findById(sessionId);
+            if (existing == null || !existing.getUserId().equals(userId)) {
+                throw new com.personalai.assistant.common.BizException("Session not found");
+            }
+        }
+
         if (sessionId == null) {
             ChatSession session = new ChatSession();
             session.setUserId(userId);
@@ -85,18 +92,26 @@ public class BiographyService {
 
         try {
             JsonNode node = objectMapper.readTree(rawReply);
-            replyText = node.get("reply").asText();
+            replyText = node.path("reply").asText(rawReply);
             List<BiographyEvent> events = new ArrayList<>();
-            for (JsonNode ev : node.get("events")) {
-                BiographyEvent event = new BiographyEvent();
-                event.setUserId(userId);
-                event.setEventDate(ev.get("event_date").asText());
-                event.setTitle(ev.get("title").asText());
-                event.setContent(ev.get("content").asText());
-                event.setCategory(ev.get("category").asText());
-                event.setSourceMsgId(assistantMsg.getId());
-                biographyEventMapper.insert(event);
-                events.add(event);
+            JsonNode eventsNode = node.path("events");
+            if (eventsNode.isArray()) {
+                for (JsonNode ev : eventsNode) {
+                    String eventDate = ev.path("event_date").asText("");
+                    String title = ev.path("title").asText("");
+                    String content = ev.path("content").asText("");
+                    String category = ev.path("category").asText("");
+                    if (eventDate.isEmpty() || title.isEmpty()) continue;
+                    BiographyEvent event = new BiographyEvent();
+                    event.setUserId(userId);
+                    event.setEventDate(eventDate);
+                    event.setTitle(title);
+                    event.setContent(content);
+                    event.setCategory(category);
+                    event.setSourceMsgId(assistantMsg.getId());
+                    biographyEventMapper.insert(event);
+                    events.add(event);
+                }
             }
             extractedEvents = events.stream()
                 .map(e -> new BiographyEventResponse(e.getId(), e.getEventDate(),
