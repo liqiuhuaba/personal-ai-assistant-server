@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@MapperScan("com.personalai.assistant.**")
+@MapperScan("com.personalai.assistant")
 @EnableScheduling
 public class PersonalAiAssistantApplication {
     public static void main(String[] args) {
