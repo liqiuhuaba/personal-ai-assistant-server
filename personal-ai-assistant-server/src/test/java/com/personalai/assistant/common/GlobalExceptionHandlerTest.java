@@ -3,8 +3,14 @@ package com.personalai.assistant.common;
 import com.personalai.assistant.auth.AuthService;
 import com.personalai.assistant.auth.JwtAuthFilter;
 import com.personalai.assistant.auth.JwtUtil;
+import com.personalai.assistant.biography.BiographyEventMapper;
+import com.personalai.assistant.calendar.CalendarMapper;
+import com.personalai.assistant.chat.ChatMessageMapper;
+import com.personalai.assistant.chat.ChatSessionMapper;
 import com.personalai.assistant.config.JwtProperties;
 import com.personalai.assistant.config.SecurityConfig;
+import com.personalai.assistant.learning.LearningSessionMapper;
+import com.personalai.assistant.search.SearchHistoryMapper;
 import com.personalai.assistant.user.UserMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +34,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest
+@WebMvcTest(controllers = GlobalExceptionHandlerTest.TestController.class)
 @Import({SecurityConfig.class, JwtAuthFilter.class, JwtUtil.class, JwtProperties.class,
          GlobalExceptionHandlerTest.TestController.class})
 @TestPropertySource(properties = {
@@ -40,6 +46,12 @@ class GlobalExceptionHandlerTest {
     @Autowired MockMvc mockMvc;
     @MockBean AuthService authService;
     @MockBean UserMapper userMapper;
+    @MockBean CalendarMapper calendarMapper;
+    @MockBean ChatSessionMapper chatSessionMapper;
+    @MockBean ChatMessageMapper chatMessageMapper;
+    @MockBean BiographyEventMapper biographyEventMapper;
+    @MockBean SearchHistoryMapper searchHistoryMapper;
+    @MockBean LearningSessionMapper learningSessionMapper;
     @SpyBean JwtAuthFilter jwtAuthFilter;
 
     @BeforeEach
