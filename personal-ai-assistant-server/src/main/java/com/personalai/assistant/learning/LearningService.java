@@ -54,6 +54,12 @@ public class LearningService {
             learningSessionMapper.insert(ls);
         }
 
+        ChatMessage userMsg = new ChatMessage();
+        userMsg.setSessionId(sessionId);
+        userMsg.setRole("user");
+        userMsg.setContent(req.message());
+        messageMapper.insert(userMsg);
+
         String systemPrompt = String.format("""
             你是一个专业的学习陪练AI，专注于 %s 科目%s。
             你的职责是：出题考察、耐心讲解、追踪理解程度，用鼓励的语气帮助用户学习。
@@ -65,13 +71,6 @@ public class LearningService {
         messages.add(new com.theokanning.openai.completion.chat.ChatMessage("system", systemPrompt));
         history.forEach(m -> messages.add(
             new com.theokanning.openai.completion.chat.ChatMessage(m.getRole(), m.getContent())));
-        messages.add(new com.theokanning.openai.completion.chat.ChatMessage("user", req.message()));
-
-        ChatMessage userMsg = new ChatMessage();
-        userMsg.setSessionId(sessionId);
-        userMsg.setRole("user");
-        userMsg.setContent(req.message());
-        messageMapper.insert(userMsg);
 
         var completionReq = ChatCompletionRequest.builder().model(model).messages(messages).build();
         var choices = openAiService.createChatCompletion(completionReq).getChoices();
