@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.personalai.assistant.chat.ChatSessionMapper">
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO chat_session (user_id, mode, title) VALUES (#{userId}, #{mode}, #{title})
+  </insert>
+  <select id="findByUserId" resultType="com.personalai.assistant.chat.domain.ChatSession">
+    SELECT * FROM chat_session WHERE user_id = #{userId} ORDER BY updated_at DESC LIMIT 20
+  </select>
+  <select id="findById" resultType="com.personalai.assistant.chat.domain.ChatSession">
+    SELECT * FROM chat_session WHERE id = #{id}
+  </select>
+</mapper>
