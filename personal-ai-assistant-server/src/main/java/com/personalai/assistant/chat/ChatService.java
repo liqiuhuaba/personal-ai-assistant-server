@@ -28,6 +28,12 @@ public class ChatService {
 
     public ChatResponse chat(Long userId, ChatRequest req) {
         Long sessionId = req.sessionId();
+        if (sessionId != null) {
+            ChatSession existing = sessionMapper.findById(sessionId);
+            if (existing == null || !existing.getUserId().equals(userId)) {
+                throw new com.personalai.assistant.common.BizException("Session not found");
+            }
+        }
         if (sessionId == null) {
             ChatSession session = new ChatSession();
             session.setUserId(userId);
@@ -53,8 +59,11 @@ public class ChatService {
             .messages(openAiMessages)
             .build();
 
-        String reply = openAiService.createChatCompletion(completionReq)
-            .getChoices().get(0).getMessage().getContent();
+        var choices = openAiService.createChatCompletion(completionReq).getChoices();
+        if (choices == null || choices.isEmpty()) {
+            throw new com.personalai.assistant.common.BizException("AI service returned no response");
+        }
+        String reply = choices.get(0).getMessage().getContent();
 
         ChatMessage assistantMsg = new ChatMessage();
         assistantMsg.setSessionId(sessionId);
