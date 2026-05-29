@@ -8,13 +8,11 @@ import com.personalai.assistant.biography.domain.dto.BiographyEventResponse;
 import com.personalai.assistant.biography.domain.dto.GenerateBiographyResponse;
 import com.personalai.assistant.chat.ChatMessageMapper;
 import com.personalai.assistant.chat.ChatSessionMapper;
+import com.personalai.assistant.chat.OpenAiClient;
 import com.personalai.assistant.chat.domain.ChatMessage;
 import com.personalai.assistant.chat.domain.ChatSession;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,11 +27,8 @@ public class BiographyService {
     private final BiographyEventMapper biographyEventMapper;
     private final ChatSessionMapper sessionMapper;
     private final ChatMessageMapper messageMapper;
-    private final OpenAiService openAiService;
+    private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
-
-    @Value("${openai.model}")
-    private String model;
 
     private static final String SYSTEM_PROMPT = """
         你是一个专门帮用户记录人生故事的AI助手。在陪用户聊过往经历时，你有两个任务：
@@ -69,17 +64,11 @@ public class BiographyService {
         messageMapper.insert(userMsg);
 
         List<ChatMessage> history = messageMapper.findBySessionId(sessionId);
-        List<com.theokanning.openai.completion.chat.ChatMessage> messages = new ArrayList<>();
-        messages.add(new com.theokanning.openai.completion.chat.ChatMessage("system", SYSTEM_PROMPT));
-        history.forEach(m -> messages.add(
-            new com.theokanning.openai.completion.chat.ChatMessage(m.getRole(), m.getContent())));
+        List<OpenAiClient.Message> messages = new ArrayList<>();
+        messages.add(new OpenAiClient.Message("system", SYSTEM_PROMPT));
+        history.forEach(m -> messages.add(new OpenAiClient.Message(m.getRole(), m.getContent())));
 
-        var req = ChatCompletionRequest.builder().model(model).messages(messages).build();
-        var choices = openAiService.createChatCompletion(req).getChoices();
-        if (choices == null || choices.isEmpty()) {
-            throw new com.personalai.assistant.common.BizException("AI service returned no response");
-        }
-        String rawReply = choices.get(0).getMessage().getContent();
+        String rawReply = openAiClient.chat(messages);
 
         ChatMessage assistantMsg = new ChatMessage();
         assistantMsg.setSessionId(sessionId);
@@ -147,16 +136,7 @@ public class BiographyService {
             %s
             """, eventsText);
 
-        var genReq = ChatCompletionRequest.builder()
-            .model(model)
-            .messages(List.of(new com.theokanning.openai.completion.chat.ChatMessage("user", prompt)))
-            .build();
-
-        var genChoices = openAiService.createChatCompletion(genReq).getChoices();
-        if (genChoices == null || genChoices.isEmpty()) {
-            throw new com.personalai.assistant.common.BizException("AI service returned no response");
-        }
-        String markdown = genChoices.get(0).getMessage().getContent();
+        String markdown = openAiClient.chat(List.of(new OpenAiClient.Message("user", prompt)));
         return new GenerateBiographyResponse(markdown);
     }
 }

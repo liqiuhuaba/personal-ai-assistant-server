@@ -1,11 +1,9 @@
 package com.personalai.assistant.news;
 
+import com.personalai.assistant.chat.OpenAiClient;
 import com.personalai.assistant.search.TavilyClient;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -19,13 +17,10 @@ import java.util.stream.Collectors;
 public class NewsService {
 
     private final TavilyClient tavilyClient;
-    private final OpenAiService openAiService;
+    private final OpenAiClient openAiClient;
     private final StringRedisTemplate redisTemplate;
 
     private static final String REDIS_KEY = "news:today";
-
-    @Value("${openai.model}")
-    private String model;
 
     public void refreshDigest() {
         log.info("Refreshing news digest...");
@@ -41,17 +36,7 @@ public class NewsService {
             %s
             """, context);
 
-        var req = ChatCompletionRequest.builder()
-            .model(model)
-            .messages(List.of(new com.theokanning.openai.completion.chat.ChatMessage("user", prompt)))
-            .build();
-
-        var choices = openAiService.createChatCompletion(req).getChoices();
-        if (choices == null || choices.isEmpty()) {
-            log.warn("AI service returned no choices for news digest, skipping cache update.");
-            return;
-        }
-        String digest = choices.get(0).getMessage().getContent();
+        String digest = openAiClient.chat(List.of(new OpenAiClient.Message("user", prompt)));
 
         redisTemplate.opsForValue().set(REDIS_KEY, digest, Duration.ofHours(25));
         log.info("News digest refreshed and cached.");

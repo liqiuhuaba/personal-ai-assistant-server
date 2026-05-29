@@ -2,16 +2,14 @@ package com.personalai.assistant.learning;
 
 import com.personalai.assistant.chat.ChatMessageMapper;
 import com.personalai.assistant.chat.ChatSessionMapper;
+import com.personalai.assistant.chat.OpenAiClient;
 import com.personalai.assistant.chat.domain.ChatMessage;
 import com.personalai.assistant.chat.domain.ChatSession;
 import com.personalai.assistant.common.BizException;
 import com.personalai.assistant.learning.domain.LearningSession;
 import com.personalai.assistant.learning.domain.dto.LearningChatRequest;
 import com.personalai.assistant.learning.domain.dto.LearningChatResponse;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -24,10 +22,7 @@ public class LearningService {
     private final LearningSessionMapper learningSessionMapper;
     private final ChatSessionMapper chatSessionMapper;
     private final ChatMessageMapper messageMapper;
-    private final OpenAiService openAiService;
-
-    @Value("${openai.model}")
-    private String model;
+    private final OpenAiClient openAiClient;
 
     public LearningChatResponse chat(Long userId, LearningChatRequest req) {
         Long sessionId = req.sessionId();
@@ -67,17 +62,11 @@ public class LearningService {
             """, req.subject(), req.topic() != null ? "中的 " + req.topic() + " 主题" : "");
 
         List<ChatMessage> history = messageMapper.findBySessionId(sessionId);
-        List<com.theokanning.openai.completion.chat.ChatMessage> messages = new ArrayList<>();
-        messages.add(new com.theokanning.openai.completion.chat.ChatMessage("system", systemPrompt));
-        history.forEach(m -> messages.add(
-            new com.theokanning.openai.completion.chat.ChatMessage(m.getRole(), m.getContent())));
+        List<OpenAiClient.Message> messages = new ArrayList<>();
+        messages.add(new OpenAiClient.Message("system", systemPrompt));
+        history.forEach(m -> messages.add(new OpenAiClient.Message(m.getRole(), m.getContent())));
 
-        var completionReq = ChatCompletionRequest.builder().model(model).messages(messages).build();
-        var choices = openAiService.createChatCompletion(completionReq).getChoices();
-        if (choices == null || choices.isEmpty()) {
-            throw new BizException("AI service returned no response");
-        }
-        String reply = choices.get(0).getMessage().getContent();
+        String reply = openAiClient.chat(messages);
 
         ChatMessage assistantMsg = new ChatMessage();
         assistantMsg.setSessionId(sessionId);
