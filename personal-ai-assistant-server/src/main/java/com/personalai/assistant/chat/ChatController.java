@@ -2,6 +2,7 @@ package com.personalai.assistant.chat;
 
 import com.personalai.assistant.chat.domain.dto.ChatRequest;
 import com.personalai.assistant.chat.domain.dto.ChatResponse;
+import com.personalai.assistant.chat.domain.dto.MessageResponse;
 import com.personalai.assistant.chat.domain.dto.SessionResponse;
 import com.personalai.assistant.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -29,5 +30,12 @@ public class ChatController {
     public ApiResponse<List<SessionResponse>> sessions(Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
         return ApiResponse.ok(chatService.listSessions(userId));
+    }
+
+    @GetMapping("/sessions/{id}/messages")
+    public ApiResponse<List<MessageResponse>> sessionMessages(Authentication auth,
+                                                             @PathVariable Long id) {
+        Long userId = (Long) auth.getPrincipal();
+        return ApiResponse.ok(chatService.getSessionMessages(userId, id));
     }
 }

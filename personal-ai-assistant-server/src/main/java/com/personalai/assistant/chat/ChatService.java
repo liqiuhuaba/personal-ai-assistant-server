@@ -4,6 +4,7 @@ import com.personalai.assistant.chat.domain.ChatMessage;
 import com.personalai.assistant.chat.domain.ChatSession;
 import com.personalai.assistant.chat.domain.dto.ChatRequest;
 import com.personalai.assistant.chat.domain.dto.ChatResponse;
+import com.personalai.assistant.chat.domain.dto.MessageResponse;
 import com.personalai.assistant.chat.domain.dto.SessionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,16 @@ public class ChatService {
     public List<SessionResponse> listSessions(Long userId) {
         return sessionMapper.findByUserId(userId).stream()
             .map(s -> new SessionResponse(s.getId(), s.getMode(), s.getTitle(), s.getUpdatedAt()))
+            .toList();
+    }
+
+    public List<MessageResponse> getSessionMessages(Long userId, Long sessionId) {
+        ChatSession session = sessionMapper.findById(sessionId);
+        if (session == null || !session.getUserId().equals(userId)) {
+            throw new com.personalai.assistant.common.BizException("Session not found");
+        }
+        return messageMapper.findBySessionId(sessionId).stream()
+            .map(m -> new MessageResponse(m.getId(), m.getRole(), m.getContent(), m.getCreatedAt()))
             .toList();
     }
 }
